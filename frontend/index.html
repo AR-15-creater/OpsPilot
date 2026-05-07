@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
+
   <body>
     <main class="app-shell">
       <section class="auth-screen" id="authScreen">
@@ -20,25 +21,31 @@
               <p>Agentic business operations console</p>
             </div>
           </div>
+
           <div class="auth-tabs">
             <button class="active" data-auth-tab="login">Login</button>
             <button data-auth-tab="join">Join workspace</button>
           </div>
+
           <form id="authForm" class="auth-form">
             <label id="nameField">
               <span>Full name</span>
               <input name="full_name" type="text" autocomplete="name" placeholder="Your name" />
             </label>
+
             <label>
               <span>Email</span>
               <input name="email" type="email" autocomplete="email" placeholder="you@company.com" required />
             </label>
+
             <label>
               <span>Password</span>
               <input name="password" type="password" autocomplete="current-password" placeholder="At least 6 characters" required />
             </label>
+
             <button class="primary-action" type="submit" id="authSubmit">Enter console</button>
             <button class="ghost-action" type="button" id="demoLogin">Continue offline</button>
+
             <p class="form-note" id="authMessage">Connects to FastAPI auth when the backend is running.</p>
           </form>
         </div>
@@ -52,6 +59,7 @@
             <span>/</span>
             <span>Console</span>
           </div>
+
           <div class="top-actions">
             <button class="model-pill" id="modelButton"><span></span><b id="modelName">gpt-4o</b> · langgraph</button>
             <button class="icon-button" data-panel="profile" type="button">Profile</button>
@@ -75,6 +83,7 @@
             <input id="taskInput" placeholder="Describe a task, paste an invoice, or drop a file..." />
             <button id="runTaskButton">Run</button>
           </div>
+
           <div class="quick-row">
             <button id="clearButton">Clear</button>
             <button id="refreshButton">Refresh data</button>
@@ -86,6 +95,7 @@
             <strong><span class="live-dot"></span> LIVE · TASK <span id="liveTaskId">--</span></strong>
             <code id="processingTime">ready</code>
           </div>
+
           <div class="message-row">
             <div class="person-badge" id="personBadge">IN</div>
             <div class="message-copy">
@@ -93,32 +103,67 @@
               <p id="taskText">No task has been processed yet.</p>
             </div>
           </div>
+
           <div class="agent-grid">
             <div class="reason-card">
               <h2>Reasoning Chain</h2>
               <ul id="reasoningList"></ul>
             </div>
+
             <div class="output-card">
               <div class="output-heading">
                 <h2>Output</h2>
                 <div class="confidence-ring"><span id="confidenceValue">--</span></div>
               </div>
+
               <dl>
-                <dt>type</dt><dd id="outType">--</dd>
-                <dt>category</dt><dd id="outCategory">--</dd>
-                <dt>priority</dt><dd id="outPriority">--</dd>
-                <dt>team</dt><dd id="outTeam">--</dd>
-                <dt>sla</dt><dd id="outSla">--</dd>
+                <dt>type</dt>
+                <dd id="outType">--</dd>
+
+                <dt>category</dt>
+                <dd id="outCategory">--</dd>
+
+                <dt>priority</dt>
+                <dd id="outPriority">--</dd>
+
+                <dt>team</dt>
+                <dd id="outTeam">--</dd>
+
+                <dt>sla</dt>
+                <dd id="outSla">--</dd>
               </dl>
             </div>
           </div>
         </section>
 
         <section class="metrics-grid">
-          <article><span>Tasks today</span><strong id="metricTasks">0</strong><small>live</small><canvas data-chart="tasks"></canvas></article>
-          <article><span>Invoices</span><strong id="metricInvoices">0</strong><small>live</small><canvas data-chart="invoices"></canvas></article>
-          <article><span>Latency</span><strong id="metricLatency">--</strong><small>p50</small><canvas data-chart="latency"></canvas></article>
-          <article><span>Accuracy</span><strong id="metricAccuracy">--</strong><small>live</small><canvas data-chart="accuracy"></canvas></article>
+          <article>
+            <span>Tasks today</span>
+            <strong id="metricTasks">0</strong>
+            <small>live</small>
+            <canvas data-chart="tasks"></canvas>
+          </article>
+
+          <article>
+            <span>Invoices</span>
+            <strong id="metricInvoices">0</strong>
+            <small>live</small>
+            <canvas data-chart="invoices"></canvas>
+          </article>
+
+          <article>
+            <span>Latency</span>
+            <strong id="metricLatency">--</strong>
+            <small>p50</small>
+            <canvas data-chart="latency"></canvas>
+          </article>
+
+          <article>
+            <span>Accuracy</span>
+            <strong id="metricAccuracy">--</strong>
+            <small>live</small>
+            <canvas data-chart="accuracy"></canvas>
+          </article>
         </section>
 
         <section class="workload-card">
@@ -126,12 +171,14 @@
             <h2>Team workload · today</h2>
             <span id="routedCount">0 tasks routed</span>
           </div>
+
           <div class="workload-bar">
-            <span id="billingBar" style="--w:25%;--c:#6657d6"></span>
-            <span id="financeBar" style="--w:25%;--c:#22a87f"></span>
-            <span id="supportBar" style="--w:25%;--c:#4b9add"></span>
-            <span id="opsBar" style="--w:25%;--c:#ec6a42"></span>
+            <span id="billingBar" style="--w:25%; --c:#6657d6"></span>
+            <span id="financeBar" style="--w:25%; --c:#22a87f"></span>
+            <span id="supportBar" style="--w:25%; --c:#4b9add"></span>
+            <span id="opsBar" style="--w:25%; --c:#ec6a42"></span>
           </div>
+
           <div class="legend">
             <span><i style="--c:#6657d6"></i>Billing <b id="billingCount">0</b></span>
             <span><i style="--c:#22a87f"></i>Finance <b id="financeCount">0</b></span>
@@ -149,10 +196,12 @@
               <button data-filter="invoice">Invoices</button>
             </div>
           </div>
+
           <div class="activity-list" id="activityList"></div>
         </section>
       </section>
     </main>
-    <script src="app.js?v=no-dummy-data-1"></script>
+
+    <script src="app.js?v=prod-api-2"></script>
   </body>
 </html>
