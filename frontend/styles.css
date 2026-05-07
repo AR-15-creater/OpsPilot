@@ -378,7 +378,7 @@ a { color: inherit; text-decoration: none; }
   background: rgba(244,242,234,.06);
 }
 
-.live-panel, .workload-card, .activity-card, .analytics-card, .metrics-grid article {
+.live-panel, .workload-card, .activity-card, .analytics-card, .ticket-detail-card, .metrics-grid article {
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: inset 0 1px rgba(255,255,255,.04);
@@ -698,9 +698,18 @@ a { color: inherit; text-decoration: none; }
   grid-template-columns: 16px 72px minmax(220px, 1fr) 118px 86px 58px;
   align-items: center;
   gap: 16px;
+  width: 100%;
   min-height: 60px;
+  border: 0;
   border-bottom: 1px solid #4a4b45;
+  color: var(--ink);
+  text-align: left;
+  background: transparent;
   font-size: 16px;
+}
+
+.activity-item:hover, .activity-item.selected {
+  background: rgba(244,242,234,.05);
 }
 
 .activity-item:last-child { border-bottom: 0; }
@@ -718,6 +727,108 @@ a { color: inherit; text-decoration: none; }
 .tag.invoice { background: #def4ee; color: #0d4c3d; }
 .tag.general { background: #e6f2ff; color: #113a5b; }
 .priority-high { color: var(--orange); font-weight: 800; }
+
+.ticket-detail-card {
+  border-radius: 18px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 18px;
+}
+
+.detail-main, .detail-side, .knowledge-box {
+  border: 1px solid #484943;
+  border-radius: 14px;
+  background: #20211e;
+}
+
+.detail-main {
+  padding: 22px;
+}
+
+.detail-main span, .detail-side span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.detail-main h3 {
+  margin: 12px 0;
+  font-size: 24px;
+}
+
+.detail-main p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.detail-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.detail-side div {
+  min-height: 92px;
+  padding: 16px;
+  border-right: 1px solid #484943;
+  border-bottom: 1px solid #484943;
+}
+
+.detail-side div:nth-child(2n) {
+  border-right: 0;
+}
+
+.detail-side div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.detail-side strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 18px;
+}
+
+.status-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.status-row button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  background: #242520;
+  font-weight: 800;
+}
+
+.status-row button.active, #escalateButton {
+  border-color: #a79cff;
+  background: var(--purple);
+}
+
+.knowledge-box {
+  padding: 20px;
+}
+
+.knowledge-box h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+.knowledge-box ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+}
 
 .customer-shell {
   width: min(1180px, calc(100% - 28px));
@@ -845,7 +956,7 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 900px) {
   .topbar, .section-heading { align-items: flex-start; flex-direction: column; }
-  .agent-grid, .metrics-grid, .ai-insight-card, .analytics-grid { grid-template-columns: 1fr; }
+  .agent-grid, .metrics-grid, .ai-insight-card, .analytics-grid, .detail-grid { grid-template-columns: 1fr; }
   .customer-layout, .customer-form { grid-template-columns: 1fr; }
   .utility-grid, .settings-form { grid-template-columns: 1fr; }
   .utility-row { grid-template-columns: 70px 1fr; }

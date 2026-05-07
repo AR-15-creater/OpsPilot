@@ -15,6 +15,7 @@ const state = {
   panel: null,
   running: false,
   items: [],
+  selectedItemId: null,
   lastLatency: null,
 };
 
@@ -270,6 +271,10 @@ function classify(text) {
       priority: "Med",
       sla: "8h",
       confidence: 94,
+      status: "New",
+      channel: "Console",
+      sentiment: getSentiment(text),
+      knowledge: getKnowledge(text),
       reasoning: "The text looks like an invoice because it mentions invoice, vendor, amount, or tax details.",
       suggestions: [
         "Verify the extracted amount and invoice number.",
@@ -288,6 +293,10 @@ function classify(text) {
       priority: lower.includes("urgent") ? "High" : "Med",
       sla: lower.includes("urgent") ? "2h" : "6h",
       confidence: 98,
+      status: "New",
+      channel: "Console",
+      sentiment: getSentiment(text),
+      knowledge: getKnowledge(text),
       reasoning: lower.includes("login")
         ? "The message mentions login or access failure, so it should go to Support."
         : "The message mentions payment failure or urgency, so it should go to Billing.",
@@ -313,6 +322,10 @@ function classify(text) {
     priority: "Low",
     sla: "24h",
     confidence: 91,
+    status: "New",
+    channel: "Console",
+    sentiment: getSentiment(text),
+    knowledge: getKnowledge(text),
     reasoning: "The request does not clearly match a support ticket or invoice, so it was routed to general operations.",
     suggestions: [
       "Add any missing deadline, owner, or business context.",
@@ -321,6 +334,42 @@ function classify(text) {
     ],
     reply: "This has been saved as a general operations task and can be assigned once more context is available.",
   };
+}
+
+function getSentiment(text) {
+  const lower = text.toLowerCase();
+
+  if (lower.includes("angry") || lower.includes("worst") || lower.includes("fraud") || lower.includes("legal")) {
+    return "Angry";
+  }
+
+  if (lower.includes("urgent") || lower.includes("failed") || lower.includes("deducted") || lower.includes("blocked")) {
+    return "Worried";
+  }
+
+  if (lower.includes("thanks") || lower.includes("resolved")) {
+    return "Positive";
+  }
+
+  return "Neutral";
+}
+
+function getKnowledge(text) {
+  const lower = text.toLowerCase();
+
+  if (lower.includes("payment") || lower.includes("deducted") || lower.includes("refund")) {
+    return ["Payment failed checklist", "Refund and reversal policy", "Gateway transaction verification"];
+  }
+
+  if (lower.includes("login") || lower.includes("password") || lower.includes("account")) {
+    return ["Password reset guide", "Account lock troubleshooting", "Login security checklist"];
+  }
+
+  if (lower.includes("invoice") || lower.includes("gst") || lower.includes("vendor")) {
+    return ["Invoice approval process", "GST invoice validation", "Vendor payment checklist"];
+  }
+
+  return ["General request handling", "Escalation policy", "Customer communication guide"];
 }
 
 function teamFromAnalysis(analysis, fallbackTeam) {
@@ -352,6 +401,10 @@ function mergeAnalysis(fallback, analysis) {
     priority: priority ? String(priority) : fallback.priority,
     sla: fallback.sla,
     confidence: analysis.confidence || fallback.confidence,
+    status: fallback.status || "New",
+    channel: fallback.channel || "Console",
+    sentiment: analysis.sentiment || fallback.sentiment,
+    knowledge: analysis.knowledge?.length ? analysis.knowledge : fallback.knowledge,
     reasoning: analysis.reasoning || fallback.reasoning,
     suggestions: analysis.suggestions?.length ? analysis.suggestions : fallback.suggestions,
     reply: analysis.reply || fallback.reply,
@@ -403,8 +456,14 @@ async function runTask() {
       id: result?.id || nextLocalId(),
       type: result?.task_type || inferred.type,
       title: text.length > 54 ? `${text.slice(0, 54)}...` : text,
+      message: text,
       team: inferred.team,
       priority: inferred.priority,
+      status: inferred.status || "New",
+      sla: inferred.sla,
+      channel: inferred.channel || "Console",
+      sentiment: inferred.sentiment,
+      knowledge: inferred.knowledge,
       reasoning: inferred.reasoning,
       suggestions: inferred.suggestions,
       reply: inferred.reply,
@@ -521,14 +580,14 @@ function renderActivity() {
     $("#activityList").innerHTML = visible
       .map(
         (item) => `
-      <div class="activity-item">
+      <button class="activity-item ${state.selectedItemId === item.id ? "selected" : ""}" data-ticket-id="${item.id}" type="button">
         <span class="activity-dot ${item.type}"></span>
         <span class="activity-id">#${item.id}</span>
         <strong>${item.title}</strong>
         <span class="tag ${item.type}">${item.team}</span>
         <span class="priority ${item.priority === "High" ? "priority-high" : ""}">${item.priority}</span>
-        <span class="activity-time">${item.time}</span>
-      </div>
+        <span class="activity-time">${item.status || item.time}</span>
+      </button>
     `
       )
       .join("");
@@ -537,6 +596,59 @@ function renderActivity() {
   if (state.panel === "history") {
     openPanel("history");
   }
+}
+
+function openTicketDetail(id) {
+  const item = state.items.find((entry) => String(entry.id) === String(id));
+
+  if (!item) return;
+
+  state.selectedItemId = item.id;
+  $("#ticketDetail").classList.remove("hidden");
+  $("#detailMeta").textContent = `#${item.id} / ${item.type} / ${item.team}`;
+  $("#detailTitle").textContent = item.title;
+  $("#detailMessage").textContent = item.message || item.title;
+  $("#detailStatus").textContent = item.status || "New";
+  $("#detailSla").textContent = getSlaText(item);
+  $("#detailSentiment").textContent = item.sentiment || "Neutral";
+  $("#detailChannel").textContent = item.channel || "Console";
+  $("#knowledgeList").innerHTML = (item.knowledge || getKnowledge(item.message || item.title))
+    .map((article) => `<li>${escapeHtml(article)}</li>`)
+    .join("");
+
+  $$("[data-status]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.status === item.status);
+  });
+
+  renderActivity();
+}
+
+function getSlaText(item) {
+  const priority = String(item.priority || "").toLowerCase();
+
+  if (item.status === "Resolved") {
+    return "Completed";
+  }
+
+  if (priority === "high") {
+    return "2h remaining";
+  }
+
+  if (priority === "med" || priority === "medium") {
+    return "8h remaining";
+  }
+
+  return "24h remaining";
+}
+
+function updateSelectedStatus(status) {
+  const item = state.items.find((entry) => String(entry.id) === String(state.selectedItemId));
+
+  if (!item) return;
+
+  item.status = status;
+  openTicketDetail(item.id);
+  updateMetrics();
 }
 
 function updateMetrics() {
@@ -614,8 +726,14 @@ async function refreshData() {
       id: task.id,
       type: task.task_type,
       title: task.title,
+      message: task.description,
       team: task.task_type === "invoice" ? "Finance" : task.task_type === "ticket" ? "Support" : "Ops",
       priority: task.priority || (task.task_type === "ticket" ? "High" : "Med"),
+      status: task.status === "completed" ? "New" : task.status,
+      sla: task.task_type === "ticket" ? "2h" : task.task_type === "invoice" ? "8h" : "24h",
+      channel: task.description?.includes("Customer:") ? "Web Form" : "Console",
+      sentiment: getSentiment(`${task.title} ${task.description}`),
+      knowledge: getKnowledge(`${task.title} ${task.description}`),
       suggestions: task.suggestions || [],
       reply: task.reply,
       time: "db",
@@ -708,6 +826,27 @@ function wireEvents() {
 
   $("#refreshButton").addEventListener("click", refreshData);
   $("#copyReplyButton").addEventListener("click", copyReplyDraft);
+  $("#detailClose").addEventListener("click", () => {
+    state.selectedItemId = null;
+    $("#ticketDetail").classList.add("hidden");
+    renderActivity();
+  });
+
+  $$("[data-status]").forEach((button) => {
+    button.addEventListener("click", () => updateSelectedStatus(button.dataset.status));
+  });
+
+  $("#escalateButton").addEventListener("click", () => {
+    const item = state.items.find((entry) => String(entry.id) === String(state.selectedItemId));
+
+    if (!item) return;
+
+    item.priority = "High";
+    item.status = "In Progress";
+    showNotification("Ticket escalated to high priority.");
+    openTicketDetail(item.id);
+    updateMetrics();
+  });
 
   $("#logoutButton").addEventListener("click", () => {
     localStorage.removeItem("opspilot_user");
@@ -733,7 +872,15 @@ function wireEvents() {
   document.addEventListener("click", (event) => {
     const replayButton = event.target.closest("[data-replay]");
 
-    if (!replayButton) return;
+    if (!replayButton) {
+      const ticketButton = event.target.closest("[data-ticket-id]");
+
+      if (ticketButton) {
+        openTicketDetail(ticketButton.dataset.ticketId);
+      }
+
+      return;
+    }
 
     const item = state.items.find((entry) => String(entry.id) === replayButton.dataset.replay);
 

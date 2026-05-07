@@ -243,9 +243,46 @@
 
           <div class="activity-list" id="activityList"></div>
         </section>
+
+        <section class="ticket-detail-card hidden" id="ticketDetail">
+          <div class="section-heading">
+            <h2>Ticket detail</h2>
+            <button class="panel-close" id="detailClose" type="button">Close</button>
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-main">
+              <span id="detailMeta">Select a request</span>
+              <h3 id="detailTitle">No ticket selected</h3>
+              <p id="detailMessage">Click any activity item to open details.</p>
+            </div>
+
+            <div class="detail-side">
+              <div><span>Status</span><strong id="detailStatus">--</strong></div>
+              <div><span>SLA</span><strong id="detailSla">--</strong></div>
+              <div><span>Sentiment</span><strong id="detailSentiment">--</strong></div>
+              <div><span>Channel</span><strong id="detailChannel">--</strong></div>
+            </div>
+          </div>
+
+          <div class="status-row">
+            <button data-status="New" type="button">New</button>
+            <button data-status="In Progress" type="button">In Progress</button>
+            <button data-status="Waiting Customer" type="button">Waiting Customer</button>
+            <button data-status="Resolved" type="button">Resolved</button>
+            <button id="escalateButton" type="button">Escalate</button>
+          </div>
+
+          <div class="knowledge-box">
+            <h3>Knowledge suggestions</h3>
+            <ul id="knowledgeList">
+              <li>No article selected.</li>
+            </ul>
+          </div>
+        </section>
       </section>
     </main>
 
-    <script src="app.js?v=advanced-viva-1"></script>
+    <script src="app.js?v=workflow-viva-1"></script>
   </body>
 </html>
