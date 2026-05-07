@@ -33,6 +33,13 @@ class TaskResponse(BaseModel):
     task_type: str
     status: str
     result: str | None = None
+    category: str | None = None
+    priority: str | None = None
+    assigned_team: str | None = None
+    confidence: int | None = None
+    reasoning: str | None = None
+    suggestions: list[str] = []
+    reply: str | None = None
 
     class Config:
         from_attributes= True

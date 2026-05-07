@@ -53,7 +53,23 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_task)
 
-    return new_task
+    analysis = agent_result["analysis"]
+
+    return {
+        "id": new_task.id,
+        "title": new_task.title,
+        "description": new_task.description,
+        "task_type": new_task.task_type,
+        "status": new_task.status,
+        "result": new_task.result,
+        "category": analysis.get("category"),
+        "priority": analysis.get("priority"),
+        "assigned_team": analysis.get("assigned_team"),
+        "confidence": analysis.get("confidence"),
+        "reasoning": analysis.get("reasoning"),
+        "suggestions": analysis.get("suggestions") or [],
+        "reply": analysis.get("reply"),
+    }
 
 @router.get("/", response_model=list[TaskResponse])
 def get_tasks(db: Session = Depends(get_db)):

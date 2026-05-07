@@ -246,6 +246,13 @@ function classify(text) {
       priority: "Med",
       sla: "8h",
       confidence: 94,
+      reasoning: "The text looks like an invoice because it mentions invoice, vendor, amount, or tax details.",
+      suggestions: [
+        "Verify the extracted amount and invoice number.",
+        "Check the due date and approval owner.",
+        "Forward the invoice to finance with the original text attached.",
+      ],
+      reply: "The invoice details have been extracted. Please review the amount, vendor, and due date before processing.",
     };
   }
 
@@ -257,6 +264,21 @@ function classify(text) {
       priority: lower.includes("urgent") ? "High" : "Med",
       sla: lower.includes("urgent") ? "2h" : "6h",
       confidence: 98,
+      reasoning: lower.includes("login")
+        ? "The message mentions login or access failure, so it should go to Support."
+        : "The message mentions payment failure or urgency, so it should go to Billing.",
+      suggestions: lower.includes("login")
+        ? [
+            "Check whether the user account is locked or disabled.",
+            "Confirm the password reset flow and recent login attempts.",
+            "Escalate to Support if the user is blocked from work.",
+          ]
+        : [
+            "Check the payment gateway and transaction status.",
+            "Ask the customer for the order ID and deduction timestamp.",
+            "Escalate to Billing if money was deducted but the order failed.",
+          ],
+      reply: "Thanks for reporting this. We have routed your issue to the right team and will review it as a priority.",
     };
   }
 
@@ -267,6 +289,48 @@ function classify(text) {
     priority: "Low",
     sla: "24h",
     confidence: 91,
+    reasoning: "The request does not clearly match a support ticket or invoice, so it was routed to general operations.",
+    suggestions: [
+      "Add any missing deadline, owner, or business context.",
+      "Assign the task to operations for first review.",
+      "Convert it to a ticket or invoice if new details appear.",
+    ],
+    reply: "This has been saved as a general operations task and can be assigned once more context is available.",
+  };
+}
+
+function teamFromAnalysis(analysis, fallbackTeam) {
+  if (analysis.assigned_team) {
+    return analysis.assigned_team;
+  }
+
+  if (analysis.task_type === "invoice") {
+    return "Finance";
+  }
+
+  if (analysis.task_type === "ticket") {
+    return fallbackTeam === "Billing" ? "Billing" : "Support";
+  }
+
+  return "Ops";
+}
+
+function mergeAnalysis(fallback, analysis) {
+  const taskType = analysis.task_type || fallback.type;
+  const priority = analysis.priority || fallback.priority;
+  const team = teamFromAnalysis(analysis, fallback.team);
+
+  return {
+    ...fallback,
+    type: taskType,
+    team,
+    category: analysis.category || fallback.category,
+    priority: priority ? String(priority) : fallback.priority,
+    sla: fallback.sla,
+    confidence: analysis.confidence || fallback.confidence,
+    reasoning: analysis.reasoning || fallback.reasoning,
+    suggestions: analysis.suggestions?.length ? analysis.suggestions : fallback.suggestions,
+    reply: analysis.reply || fallback.reply,
   };
 }
 
@@ -281,7 +345,7 @@ async function runTask() {
   }
 
   const started = performance.now();
-  const inferred = classify(text);
+  let inferred = classify(text);
 
   state.running = true;
 
@@ -298,11 +362,15 @@ async function runTask() {
         title: text.slice(0, 62),
         description: text,
       }),
-      timeoutMs: 3500,
+      timeoutMs: 12000,
     });
   } catch {
     result = null;
   } finally {
+    if (result) {
+      inferred = mergeAnalysis(inferred, result);
+    }
+
     const elapsed = ((performance.now() - started) / 1000).toFixed(2);
 
     state.lastLatency = Number(elapsed);
@@ -313,6 +381,9 @@ async function runTask() {
       title: text.length > 54 ? `${text.slice(0, 54)}...` : text,
       team: inferred.team,
       priority: inferred.priority,
+      reasoning: inferred.reasoning,
+      suggestions: inferred.suggestions,
+      reply: inferred.reply,
       time: "now",
     };
 
@@ -320,6 +391,7 @@ async function runTask() {
     state.items = state.items.slice(0, 20);
 
     updateLive(text, inferred, item.id, elapsed);
+    renderReasoning(false, inferred);
     renderActivity();
     updateMetrics();
 
@@ -350,6 +422,8 @@ function resetLivePanel() {
   $("#outPriority").textContent = "--";
   $("#outTeam").textContent = "--";
   $("#outSla").textContent = "--";
+  $("#suggestionList").innerHTML = "<li>No suggestions yet.</li>";
+  $("#replyDraft").textContent = "Run a task to generate a response draft.";
 }
 
 function updateLive(text, info, id, elapsed = "0.00") {
@@ -366,13 +440,26 @@ function updateLive(text, info, id, elapsed = "0.00") {
   $("#outTeam").textContent = `${info.team.toLowerCase()}_team`;
   $("#outSla").textContent = info.sla;
   $("#confidenceValue").textContent = `${info.confidence}%`;
+  $("#suggestionList").innerHTML = (info.suggestions || [])
+    .map((suggestion) => `<li>${escapeHtml(suggestion)}</li>`)
+    .join("");
+  $("#replyDraft").textContent = info.reply || "No reply draft generated.";
 
   $(".confidence-ring").style.background = `conic-gradient(var(--green) 0 ${
     info.confidence * 3.6
   }deg, rgba(255,255,255,.18) ${info.confidence * 3.6}deg)`;
 }
 
-function renderReasoning(active) {
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderReasoning(active, info = null) {
   if (!active && !state.items.length) {
     $("#reasoningList").innerHTML = `<li class="pending"><i></i><span>No task processed yet</span><small></small></li>`;
     return;
@@ -383,7 +470,7 @@ function renderReasoning(active) {
     ["Extract entities", "", "done"],
     ["Classify task type", "", "done"],
     ["Route to team", "", active ? "active" : "done"],
-    ["Persist result", "", active ? "pending" : "done"],
+    [info?.reasoning || "Persist result", "", active ? "pending" : "done"],
   ];
 
   $("#reasoningList").innerHTML = steps

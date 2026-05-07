@@ -422,20 +422,20 @@ a { color: inherit; text-decoration: none; }
   padding: 0 32px 30px;
 }
 
-.reason-card, .output-card {
+.reason-card, .output-card, .ai-insight-card {
   min-height: 270px;
   border-radius: 16px;
   padding: 28px;
 }
 
 .reason-card { background: #242520; }
-.reason-card h2, .output-card h2, .section-heading h2 {
+.reason-card h2, .output-card h2, .ai-insight-card h2, .section-heading h2 {
   margin: 0;
   font-size: 17px;
   text-transform: none;
 }
 
-.reason-card h2, .output-card h2 {
+.reason-card h2, .output-card h2, .ai-insight-card h2 {
   margin-bottom: 22px;
   color: #cbc8bf;
   text-transform: uppercase;
@@ -476,6 +476,15 @@ a { color: inherit; text-decoration: none; }
 
 .output-card {
   background: var(--purple-deep);
+}
+
+.ai-insight-card {
+  grid-column: 1 / -1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  background: #20211e;
 }
 
 .output-heading {
@@ -527,6 +536,36 @@ a { color: inherit; text-decoration: none; }
 #outType { padding: 8px 16px; border-radius: 999px; background: #6657d6; }
 #outPriority { padding: 8px 16px; border-radius: 999px; background: var(--orange); }
 #outTeam { color: var(--green); }
+
+.ai-insight-card ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-insight-card li, .ai-insight-card p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.ai-insight-card li {
+  position: relative;
+  padding-left: 20px;
+}
+
+.ai-insight-card li::before {
+  content: "";
+  position: absolute;
+  top: .7em;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+}
 
 .metrics-grid {
   display: grid;
@@ -613,7 +652,7 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 900px) {
   .topbar, .section-heading { align-items: flex-start; flex-direction: column; }
-  .agent-grid, .metrics-grid { grid-template-columns: 1fr; }
+  .agent-grid, .metrics-grid, .ai-insight-card { grid-template-columns: 1fr; }
   .utility-grid, .settings-form { grid-template-columns: 1fr; }
   .utility-row { grid-template-columns: 70px 1fr; }
   .message-row { grid-template-columns: 1fr; }
