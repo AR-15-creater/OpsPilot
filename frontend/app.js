@@ -1,7 +1,7 @@
 const state = {
   user: JSON.parse(localStorage.getItem("opspilot_user") || "null"),
   token: localStorage.getItem("opspilot_token"),
-  apiBase: localStorage.getItem("opspilot_api_base") || "https://opspilot-api.onrender.com",
+  apiBase: localStorage.getItem("opspilot_api_base") || "https://opspilot-d359.onrender.com",
   model: localStorage.getItem("opspilot_model") || "gpt-4o",
   authMode: "login",
   filter: "all",
