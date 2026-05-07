@@ -32,6 +32,7 @@ function showConsole() {
   $("#authScreen").classList.add("hidden");
   $("#consoleScreen").classList.remove("hidden");
   $("#modelName").textContent = state.model;
+  applyRole();
   resetLivePanel();
   renderReasoning(false);
   renderActivity();
@@ -89,6 +90,7 @@ async function handleAuth(event) {
   const email = form.get("email");
   const password = form.get("password");
   const fullName = form.get("full_name") || "Workspace member";
+  const role = form.get("role") || "operator";
 
   $("#authMessage").textContent = "Connecting...";
 
@@ -116,7 +118,7 @@ async function handleAuth(event) {
       {
         full_name: fullName,
         email,
-        role: "operator",
+        role,
       },
       token.access_token
     );
@@ -131,7 +133,7 @@ function continueOffline() {
   saveSession({
     full_name: "Workspace member",
     email: "local@workspace",
-    role: "operator",
+    role: "admin",
   });
 
   showConsole();
@@ -184,6 +186,13 @@ function panelMarkup(panel) {
           <option value="gpt-4o-mini" ${state.model === "gpt-4o-mini" ? "selected" : ""}>gpt-4o-mini</option>
         </select>
       </label>
+      <label>
+        Role
+        <select name="role">
+          <option value="admin" ${state.user?.role === "admin" ? "selected" : ""}>admin</option>
+          <option value="operator" ${state.user?.role !== "admin" ? "selected" : ""}>operator</option>
+        </select>
+      </label>
       <button type="submit">Save</button>
     </form>
   `;
@@ -227,12 +236,27 @@ function saveSettings(event) {
 
   state.apiBase = String(form.get("api_base") || API_BASE).trim();
   state.model = String(form.get("model") || "gpt-4o");
+  state.user = {
+    ...(state.user || {}),
+    role: String(form.get("role") || "operator"),
+  };
 
   localStorage.setItem("opspilot_api_base", state.apiBase);
   localStorage.setItem("opspilot_model", state.model);
+  localStorage.setItem("opspilot_user", JSON.stringify(state.user));
 
   $("#modelName").textContent = state.model;
+  applyRole();
   $("#utilityBody").insertAdjacentHTML("beforeend", `<p class="form-note">Settings saved.</p>`);
+}
+
+function applyRole() {
+  const role = state.user?.role === "admin" ? "admin" : "operator";
+  $("#roleBadge").textContent = role === "admin" ? "Admin" : "Operator";
+  $("#adminAnalytics").classList.toggle("hidden", role !== "admin");
+  $$("[data-admin-only]").forEach((element) => {
+    element.classList.toggle("hidden", role !== "admin");
+  });
 }
 
 function classify(text) {
@@ -424,6 +448,7 @@ function resetLivePanel() {
   $("#outSla").textContent = "--";
   $("#suggestionList").innerHTML = "<li>No suggestions yet.</li>";
   $("#replyDraft").textContent = "Run a task to generate a response draft.";
+  $("#copyReplyButton").disabled = true;
 }
 
 function updateLive(text, info, id, elapsed = "0.00") {
@@ -444,6 +469,7 @@ function updateLive(text, info, id, elapsed = "0.00") {
     .map((suggestion) => `<li>${escapeHtml(suggestion)}</li>`)
     .join("");
   $("#replyDraft").textContent = info.reply || "No reply draft generated.";
+  $("#copyReplyButton").disabled = !info.reply;
 
   $(".confidence-ring").style.background = `conic-gradient(var(--green) 0 ${
     info.confidence * 3.6
@@ -530,7 +556,23 @@ function updateMetrics() {
   $("#routedCount").textContent = `${taskCount} tasks routed`;
 
   updateWorkloadBars(counts);
+  updateAnalytics(counts);
   drawCharts();
+}
+
+function updateAnalytics(counts) {
+  const highPriority = state.items.filter((item) => String(item.priority).toLowerCase() === "high").length;
+  const tickets = state.items.filter((item) => item.type === "ticket").length;
+  const invoices = state.items.filter((item) => item.type === "invoice").length;
+  const topTeam = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+
+  $("#analyticsHigh").textContent = highPriority;
+  $("#analyticsTickets").textContent = tickets;
+  $("#analyticsInvoices").textContent = invoices;
+  $("#analyticsTopTeam").textContent = topTeam && topTeam[1] ? topTeam[0] : "--";
+  $("#analyticsSummary").textContent = state.items.length
+    ? `${state.items.length} total requests, ${highPriority} urgent`
+    : "No requests yet";
 }
 
 function teamCounts() {
@@ -559,6 +601,7 @@ function updateWorkloadBars(counts) {
 
 async function refreshData() {
   $("#refreshButton").textContent = "Refreshing...";
+  const previousMaxId = state.items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0);
 
   try {
     const [tasks, tickets, invoices] = await Promise.all([
@@ -572,9 +615,19 @@ async function refreshData() {
       type: task.task_type,
       title: task.title,
       team: task.task_type === "invoice" ? "Finance" : task.task_type === "ticket" ? "Support" : "Ops",
-      priority: task.task_type === "ticket" ? "High" : "Med",
+      priority: task.priority || (task.task_type === "ticket" ? "High" : "Med"),
+      suggestions: task.suggestions || [],
+      reply: task.reply,
       time: "db",
     }));
+
+    const latestMaxId = state.items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0);
+
+    if (previousMaxId && latestMaxId > previousMaxId) {
+      showNotification(`${latestMaxId - previousMaxId} new customer request received.`);
+    } else if (state.items.length) {
+      showNotification("Data refreshed. Latest customer requests are loaded.");
+    }
 
     $("#metricInvoices").textContent = invoices.length;
     $("#supportCount").textContent = tickets.length;
@@ -586,6 +639,16 @@ async function refreshData() {
   } finally {
     $("#refreshButton").textContent = "Refresh data";
   }
+}
+
+function showNotification(text) {
+  const banner = $("#notificationBanner");
+  banner.textContent = text;
+  banner.classList.remove("hidden");
+  window.clearTimeout(showNotification.timer);
+  showNotification.timer = window.setTimeout(() => {
+    banner.classList.add("hidden");
+  }, 4200);
 }
 
 function drawCharts() {
@@ -644,6 +707,7 @@ function wireEvents() {
   });
 
   $("#refreshButton").addEventListener("click", refreshData);
+  $("#copyReplyButton").addEventListener("click", copyReplyDraft);
 
   $("#logoutButton").addEventListener("click", () => {
     localStorage.removeItem("opspilot_user");
@@ -715,6 +779,31 @@ function wireEvents() {
     $("#taskInput").value = await file.text();
     runTask();
   });
+}
+
+async function copyReplyDraft() {
+  const text = $("#replyDraft").textContent.trim();
+
+  if (!text || text === "Run a task to generate a response draft.") {
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    $("#copyReplyButton").textContent = "Copied";
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = text;
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+    $("#copyReplyButton").textContent = "Copied";
+  }
+
+  window.setTimeout(() => {
+    $("#copyReplyButton").textContent = "Copy";
+  }, 1400);
 }
 
 wireEvents();

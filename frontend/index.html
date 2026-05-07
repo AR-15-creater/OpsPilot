@@ -43,6 +43,14 @@
               <input name="password" type="password" autocomplete="current-password" placeholder="At least 6 characters" required />
             </label>
 
+            <label>
+              <span>Workspace role</span>
+              <select name="role">
+                <option value="admin">Admin</option>
+                <option value="operator">Operator</option>
+              </select>
+            </label>
+
             <button class="primary-action" type="submit" id="authSubmit">Enter console</button>
             <a class="ghost-link" href="customer.html">Open customer request page</a>
             <button class="ghost-action" type="button" id="demoLogin">Continue offline</button>
@@ -62,10 +70,11 @@
           </div>
 
           <div class="top-actions">
-            <button class="model-pill" id="modelButton"><span></span><b id="modelName">gpt-4o</b> · langgraph</button>
+            <span class="role-pill" id="roleBadge">Admin</span>
+            <button class="model-pill" id="modelButton" data-admin-only><span></span><b id="modelName">gpt-4o</b> · langgraph</button>
             <button class="icon-button" data-panel="profile" type="button">Profile</button>
             <button class="icon-button" data-panel="history" type="button">History</button>
-            <button class="icon-button" data-panel="settings" type="button">Settings</button>
+            <button class="icon-button" data-panel="settings" data-admin-only type="button">Settings</button>
             <a class="icon-button" href="customer.html">Customer page</a>
             <button class="icon-button" id="logoutButton" title="Logout">Logout</button>
           </div>
@@ -80,6 +89,8 @@
         </section>
 
         <section class="command-wrap">
+          <div class="notification-banner hidden" id="notificationBanner">New customer request received.</div>
+
           <div class="command-bar" id="dropZone">
             <span class="search-icon">⌕</span>
             <input id="taskInput" placeholder="Describe a task, paste an invoice, or drop a file..." />
@@ -145,10 +156,27 @@
               </div>
 
               <div>
-                <h2>Reply Draft</h2>
+                <div class="reply-head">
+                  <h2>Reply Draft</h2>
+                  <button class="mini-action" id="copyReplyButton" type="button">Copy</button>
+                </div>
                 <p id="replyDraft">Run a task to generate a response draft.</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section class="analytics-card" id="adminAnalytics">
+          <div class="section-heading">
+            <h2>Admin analytics</h2>
+            <span id="analyticsSummary">No requests yet</span>
+          </div>
+
+          <div class="analytics-grid">
+            <div><span>High priority</span><strong id="analyticsHigh">0</strong></div>
+            <div><span>Tickets</span><strong id="analyticsTickets">0</strong></div>
+            <div><span>Invoices</span><strong id="analyticsInvoices">0</strong></div>
+            <div><span>Top team</span><strong id="analyticsTopTeam">--</strong></div>
           </div>
         </section>
 
@@ -218,6 +246,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=ai-suggestions-1"></script>
+    <script src="app.js?v=advanced-viva-1"></script>
   </body>
 </html>

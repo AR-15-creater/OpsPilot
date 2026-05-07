@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 class UserCreate(BaseModel):
     full_name:str
@@ -38,7 +38,7 @@ class TaskResponse(BaseModel):
     assigned_team: str | None = None
     confidence: int | None = None
     reasoning: str | None = None
-    suggestions: list[str] = []
+    suggestions: list[str] = Field(default_factory=list)
     reply: str | None = None
 
     class Config:
