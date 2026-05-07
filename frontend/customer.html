@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Submit Request | OpsPilot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <main class="customer-shell">
+      <header class="customer-topbar">
+        <a class="brand-mini" href="index.html">
+          <div class="logo-mark small">OP</div>
+          <strong>OpsPilot</strong>
+          <span>/</span>
+          <span>Customer request</span>
+        </a>
+
+        <a class="icon-button" href="index.html">Staff console</a>
+      </header>
+
+      <section class="customer-layout">
+        <div class="customer-copy">
+          <span class="eyebrow">Support intake</span>
+          <h1>Tell us what happened.</h1>
+          <p>
+            Submit a payment issue, login problem, invoice, or business request. OpsPilot will analyze it and route it to the right team.
+          </p>
+
+          <div class="flow-strip">
+            <span>Submit</span>
+            <i></i>
+            <span>AI analyzes</span>
+            <i></i>
+            <span>Team receives it</span>
+          </div>
+        </div>
+
+        <form class="customer-form" id="customerForm">
+          <label>
+            <span>Your name</span>
+            <input name="customer_name" type="text" placeholder="Enter your name" required />
+          </label>
+
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" placeholder="you@example.com" required />
+          </label>
+
+          <label>
+            <span>Request type</span>
+            <select name="request_type">
+              <option value="Payment issue">Payment issue</option>
+              <option value="Login problem">Login problem</option>
+              <option value="Invoice">Invoice</option>
+              <option value="General request">General request</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Order ID or invoice number</span>
+            <input name="reference" type="text" placeholder="Optional" />
+          </label>
+
+          <label class="full-field">
+            <span>Message</span>
+            <textarea name="message" placeholder="Describe the issue clearly..." required></textarea>
+          </label>
+
+          <button class="primary-action" type="submit" id="customerSubmit">Submit request</button>
+          <p class="form-note" id="customerMessage">Your request will appear in the OpsPilot console.</p>
+        </form>
+      </section>
+    </main>
+
+    <script src="customer.js?v=customer-intake-1"></script>
+  </body>
+</html>

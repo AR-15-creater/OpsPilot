@@ -136,7 +136,9 @@ a { color: inherit; text-decoration: none; }
 .auth-form input { height: 54px; padding: 0 16px; }
 .auth-form input:focus, .command-bar:focus-within { border-color: #a79cff; box-shadow: 0 0 0 4px rgba(98,84,206,.2); }
 
-.primary-action, .ghost-action, .command-bar button {
+.primary-action, .ghost-action, .ghost-link, .command-bar button {
+  display: grid;
+  place-items: center;
   min-height: 52px;
   border: 0;
   border-radius: 16px;
@@ -145,7 +147,7 @@ a { color: inherit; text-decoration: none; }
   background: linear-gradient(135deg, var(--purple), #8276ee);
 }
 
-.ghost-action {
+.ghost-action, .ghost-link {
   color: var(--ink);
   background: rgba(244,242,234,.08);
   border: 1px solid var(--line);
@@ -650,9 +652,134 @@ a { color: inherit; text-decoration: none; }
 .tag.general { background: #e6f2ff; color: #113a5b; }
 .priority-high { color: var(--orange); font-weight: 800; }
 
+.customer-shell {
+  width: min(1180px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 24px 0 34px;
+}
+
+.customer-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 38px;
+}
+
+.customer-layout {
+  min-height: calc(100vh - 128px);
+  display: grid;
+  grid-template-columns: .95fr 1.05fr;
+  align-items: center;
+  gap: 34px;
+}
+
+.customer-copy {
+  display: grid;
+  gap: 18px;
+}
+
+.eyebrow {
+  width: max-content;
+  padding: 8px 13px;
+  border: 1px solid #6d66b8;
+  border-radius: 999px;
+  color: #d8d2ff;
+  background: rgba(98,84,206,.18);
+  font-weight: 800;
+}
+
+.customer-copy h1 {
+  max-width: 640px;
+  margin: 0;
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: .98;
+}
+
+.customer-copy p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.flow-strip {
+  width: min(560px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(44,45,42,.72);
+}
+
+.flow-strip span {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.flow-strip i {
+  width: 34px;
+  height: 2px;
+  background: var(--green);
+}
+
+.customer-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: clamp(22px, 4vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(48, 49, 45, .96), rgba(28, 29, 26, .98));
+  box-shadow: 0 30px 90px rgba(0,0,0,.32);
+}
+
+.customer-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.customer-form input, .customer-form select, .customer-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #20211e;
+  color: var(--ink);
+  outline: 0;
+}
+
+.customer-form input, .customer-form select {
+  min-height: 52px;
+  padding: 0 14px;
+}
+
+.customer-form textarea {
+  min-height: 168px;
+  resize: vertical;
+  padding: 14px;
+  line-height: 1.45;
+}
+
+.customer-form input:focus, .customer-form select:focus, .customer-form textarea:focus {
+  border-color: #a79cff;
+  box-shadow: 0 0 0 4px rgba(98,84,206,.2);
+}
+
+.customer-form .full-field, .customer-form .primary-action, .customer-form .form-note {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 900px) {
   .topbar, .section-heading { align-items: flex-start; flex-direction: column; }
   .agent-grid, .metrics-grid, .ai-insight-card { grid-template-columns: 1fr; }
+  .customer-layout, .customer-form { grid-template-columns: 1fr; }
   .utility-grid, .settings-form { grid-template-columns: 1fr; }
   .utility-row { grid-template-columns: 70px 1fr; }
   .message-row { grid-template-columns: 1fr; }
@@ -665,6 +792,7 @@ a { color: inherit; text-decoration: none; }
   .app-shell { width: min(100% - 18px, 1470px); padding-top: 10px; }
   .brand-mini { font-size: 20px; gap: 10px; }
   .top-actions { flex-wrap: wrap; }
+  .customer-topbar { align-items: flex-start; flex-direction: column; }
   .command-bar { grid-template-columns: 1fr; padding: 14px; }
   .search-icon { display: none; }
   .command-bar input { font-size: 18px; min-height: 44px; }
