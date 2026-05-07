@@ -126,18 +126,8 @@ async function handleAuth(event) {
 
     showConsole();
   } catch (error) {
-    $("#authMessage").textContent = `${error.message}. Continue offline or check backend connection.`;
+    $("#authMessage").textContent = `${error.message}. Please check backend connection.`;
   }
-}
-
-function continueOffline() {
-  saveSession({
-    full_name: "Workspace member",
-    email: "local@workspace",
-    role: "admin",
-  });
-
-  showConsole();
 }
 
 function panelMarkup(panel) {
@@ -836,7 +826,6 @@ function drawCharts() {
 
 function wireEvents() {
   $("#authForm").addEventListener("submit", handleAuth);
-  $("#demoLogin").addEventListener("click", continueOffline);
 
   $$("[data-auth-tab]").forEach((button) => {
     button.addEventListener("click", () => setAuthMode(button.dataset.authTab));
