@@ -142,11 +142,27 @@ function continueOffline() {
 
 function panelMarkup(panel) {
   if (panel === "profile") {
+    const isAdmin = state.user?.role === "admin";
+
     return `
       <div class="utility-grid">
         <div class="utility-tile"><span>Workspace</span><strong>${state.user?.full_name || "Workspace member"}</strong></div>
         <div class="utility-tile"><span>Role</span><strong>${state.user?.role || "operator"}</strong></div>
         <div class="utility-tile"><span>Session</span><strong>${state.token ? "Active" : "Inactive"}</strong></div>
+      </div>
+
+      <div class="about-box">
+        <h3>About OpsPilot</h3>
+        <p>
+          OpsPilot is an AI-powered operations console. Customers submit requests from the public page, then the AI classifies them as tickets, invoices, or general tasks. Staff can review priority, SLA, sentiment, suggestions, and reply drafts before taking action.
+        </p>
+      </div>
+
+      <div class="profile-actions">
+        <button type="button" data-panel-jump="history">History</button>
+        ${isAdmin ? `<button type="button" data-panel-jump="settings">Settings</button>` : ""}
+        <a href="customer.html">Customer request page</a>
+        <button type="button" id="profileLogoutButton">Logout</button>
       </div>
     `;
   }
@@ -215,6 +231,12 @@ function openPanel(panel) {
   if (settingsForm) {
     settingsForm.addEventListener("submit", saveSettings);
   }
+
+  const logoutButton = $("#profileLogoutButton");
+
+  if (logoutButton) {
+    logoutButton.addEventListener("click", logout);
+  }
 }
 
 function closePanel() {
@@ -258,6 +280,15 @@ function applyRole() {
   $$("[data-admin-only]").forEach((element) => {
     element.classList.toggle("hidden", role !== "admin");
   });
+}
+
+function logout() {
+  localStorage.removeItem("opspilot_user");
+  localStorage.removeItem("opspilot_token");
+  state.user = null;
+  state.token = null;
+  state.items = [];
+  showAuth();
 }
 
 function classify(text) {
@@ -848,15 +879,6 @@ function wireEvents() {
     updateMetrics();
   });
 
-  $("#logoutButton").addEventListener("click", () => {
-    localStorage.removeItem("opspilot_user");
-    localStorage.removeItem("opspilot_token");
-    state.user = null;
-    state.token = null;
-    state.items = [];
-    showAuth();
-  });
-
   $("#modelButton").addEventListener("click", () => {
     state.model = state.model === "gpt-4o" ? "gpt-4o-mini" : "gpt-4o";
     localStorage.setItem("opspilot_model", state.model);
@@ -870,6 +892,13 @@ function wireEvents() {
   $("#panelClose").addEventListener("click", closePanel);
 
   document.addEventListener("click", (event) => {
+    const panelJump = event.target.closest("[data-panel-jump]");
+
+    if (panelJump) {
+      openPanel(panelJump.dataset.panelJump);
+      return;
+    }
+
     const replayButton = event.target.closest("[data-replay]");
 
     if (!replayButton) {

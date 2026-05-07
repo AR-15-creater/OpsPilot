@@ -279,6 +279,46 @@ a { color: inherit; text-decoration: none; }
   font-size: 18px;
 }
 
+.about-box {
+  padding: 16px;
+  border: 1px solid #484943;
+  border-radius: 12px;
+  background: #20211e;
+}
+
+.about-box h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.about-box p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.profile-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.profile-actions button, .profile-actions a {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #2f302c;
+  font-weight: 800;
+}
+
+.profile-actions button:hover, .profile-actions a:hover {
+  border-color: #a79cff;
+  background: #353341;
+}
+
 .utility-list {
   display: grid;
   gap: 8px;
@@ -958,7 +998,7 @@ a { color: inherit; text-decoration: none; }
   .topbar, .section-heading { align-items: flex-start; flex-direction: column; }
   .agent-grid, .metrics-grid, .ai-insight-card, .analytics-grid, .detail-grid { grid-template-columns: 1fr; }
   .customer-layout, .customer-form { grid-template-columns: 1fr; }
-  .utility-grid, .settings-form { grid-template-columns: 1fr; }
+  .utility-grid, .settings-form, .profile-actions { grid-template-columns: 1fr; }
   .utility-row { grid-template-columns: 70px 1fr; }
   .message-row { grid-template-columns: 1fr; }
   .message-copy p { font-size: 19px; padding: 18px; }
