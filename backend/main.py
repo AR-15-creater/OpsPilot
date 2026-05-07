@@ -1,14 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from database import engine
 from models import Base
-from routes import auth_routes, tasks, tickets, invoices
+from routes import auth_routes, invoices, tasks, tickets
 
 
 app = FastAPI(
-    title = "OpsPilot",
-    description = "Agentic Business Operations Automation Platform",
-    version="1.0.0"
+    title="OpsPilot",
+    description="Agentic Business Operations Automation Platform",
+    version="1.0.0",
 )
 
 Base.metadata.create_all(bind=engine)
@@ -16,6 +17,7 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://opspilot.atharvarasal6.workers.dev",
         "https://opspilot.pages.dev",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -33,20 +35,30 @@ app.include_router(tasks.router)
 app.include_router(tickets.router)
 app.include_router(invoices.router)
 
+
 @app.get("/")
 def root():
-    return{
+    return {
         "message": "Welcome to OpsPilot"
     }
 
+
 @app.get("/health")
 def health_check():
-    return{"status":"ok"}
+    return {
+        "status": "ok"
+    }
+
 
 @app.get("/db-check")
 def db_check():
     try:
-        with engine.connect() as connection:
-            return{"database":"connected"}
+        with engine.connect():
+            return {
+                "database": "connected"
+            }
     except Exception as e:
-        return{"database":"not connected", "error": str(e)}
+        return {
+            "database": "not connected",
+            "error": str(e),
+        }
