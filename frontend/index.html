@@ -71,6 +71,7 @@
           <div class="top-actions">
             <span class="role-pill" id="roleBadge">Admin</span>
             <button class="model-pill" id="modelButton" data-admin-only><span></span><b id="modelName">gpt-4o</b> · langgraph</button>
+            <button class="icon-button" id="themeButton" type="button">Light</button>
             <button class="icon-button" data-panel="profile" type="button">Profile</button>
           </div>
         </header>
@@ -95,6 +96,7 @@
           <div class="quick-row">
             <button id="clearButton">Clear</button>
             <button id="refreshButton">Refresh data</button>
+            <button id="summaryButton">Daily summary</button>
           </div>
         </section>
 
@@ -239,7 +241,52 @@
             </div>
           </div>
 
+          <div class="console-controls">
+            <input id="searchInput" placeholder="Search ID, email, priority, team, status, channel..." />
+            <select id="priorityFilter">
+              <option value="all">All priorities</option>
+              <option value="High">High</option>
+              <option value="Med">Med</option>
+              <option value="Low">Low</option>
+            </select>
+            <select id="statusFilter">
+              <option value="all">All status</option>
+              <option value="New">New</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Waiting Customer">Waiting Customer</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+            <select id="channelFilter">
+              <option value="all">All channels</option>
+              <option value="Website Form">Website Form</option>
+              <option value="Email">Email</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Telegram">Telegram</option>
+              <option value="Invoice Upload">Invoice Upload</option>
+              <option value="Manual Entry">Manual Entry</option>
+              <option value="Console">Console</option>
+            </select>
+            <button id="viewToggle" type="button">Kanban view</button>
+            <button id="exportButton" type="button">Export CSV</button>
+          </div>
+
           <div class="activity-list" id="activityList"></div>
+        </section>
+
+        <section class="kanban-card hidden" id="kanbanCard">
+          <div class="section-heading">
+            <h2>Kanban board</h2>
+            <span>Grouped by workflow status</span>
+          </div>
+          <div class="kanban-grid" id="kanbanGrid"></div>
+        </section>
+
+        <section class="summary-card hidden" id="summaryCard">
+          <div class="section-heading">
+            <h2>Daily AI summary</h2>
+            <button class="panel-close" id="summaryClose" type="button">Close</button>
+          </div>
+          <p id="summaryText"></p>
         </section>
 
         <section class="ticket-detail-card hidden" id="ticketDetail">
@@ -276,6 +323,21 @@
             <ul id="knowledgeList">
               <li>No article selected.</li>
             </ul>
+          </div>
+
+          <div class="notes-grid">
+            <form class="note-form" id="noteForm">
+              <h3>Internal notes</h3>
+              <textarea id="noteInput" placeholder="Add private note for this request..."></textarea>
+              <button class="mini-action" type="submit">Add note</button>
+            </form>
+
+            <div class="timeline-box">
+              <h3>Activity timeline</h3>
+              <ul id="timelineList">
+                <li>No timeline yet.</li>
+              </ul>
+            </div>
           </div>
         </section>
       </section>

@@ -10,8 +10,14 @@ const state = {
       : API_BASE;
   })(),
   model: localStorage.getItem("opspilot_model") || "gpt-4o",
+  theme: localStorage.getItem("opspilot_theme") || "dark",
   authMode: "login",
   filter: "all",
+  search: "",
+  priorityFilter: "all",
+  statusFilter: "all",
+  channelFilter: "all",
+  view: "list",
   panel: null,
   running: false,
   items: [],
@@ -41,6 +47,11 @@ function showConsole() {
   updateMetrics();
   startPolling();
   refreshData(true);
+}
+
+function applyTheme() {
+  document.body.dataset.theme = state.theme;
+  $("#themeButton").textContent = state.theme === "dark" ? "Light" : "Dark";
 }
 
 function showAuth() {
@@ -607,7 +618,7 @@ function renderReasoning(active, info = null) {
 }
 
 function renderActivity() {
-  const visible = state.items.filter((item) => state.filter === "all" || item.type === state.filter);
+  const visible = getVisibleItems();
 
   if (!visible.length) {
     $("#activityList").innerHTML = `<div class="empty-state">No activity yet.</div>`;
@@ -631,6 +642,57 @@ function renderActivity() {
   if (state.panel === "history") {
     openPanel("history");
   }
+
+  renderKanban();
+}
+
+function getVisibleItems() {
+  const needle = state.search.trim().toLowerCase();
+
+  return state.items.filter((item) => {
+    const haystack = [
+      item.id,
+      item.title,
+      item.message,
+      item.customerEmail,
+      item.priority,
+      item.team,
+      item.status,
+      item.channel,
+      item.type,
+    ].join(" ").toLowerCase();
+
+    const typeOk = state.filter === "all" || item.type === state.filter;
+    const priorityOk = state.priorityFilter === "all" || item.priority === state.priorityFilter;
+    const statusOk = state.statusFilter === "all" || item.status === state.statusFilter;
+    const channelOk = state.channelFilter === "all" || item.channel === state.channelFilter;
+    const searchOk = !needle || haystack.includes(needle);
+
+    return typeOk && priorityOk && statusOk && channelOk && searchOk;
+  });
+}
+
+function renderKanban() {
+  const columns = ["New", "In Progress", "Waiting Customer", "Resolved"];
+  const visible = getVisibleItems();
+
+  $("#kanbanGrid").innerHTML = columns.map((status) => {
+    const cards = visible.filter((item) => item.status === status);
+
+    return `
+      <div class="kanban-column">
+        <h3>${status} <span>${cards.length}</span></h3>
+        <div class="kanban-items">
+          ${cards.length ? cards.map((item) => `
+            <button class="kanban-item" data-ticket-id="${item.id}" type="button">
+              <strong>#${item.id} ${escapeHtml(item.title)}</strong>
+              <span>${escapeHtml(item.team)} · ${escapeHtml(item.priority)} · ${escapeHtml(item.channel)}</span>
+            </button>
+          `).join("") : `<p>No requests</p>`}
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 function openTicketDetail(id) {
@@ -655,6 +717,7 @@ function openTicketDetail(id) {
     button.classList.toggle("active", button.dataset.status === item.status);
   });
 
+  renderTimeline(item);
   renderActivity();
 }
 
@@ -683,6 +746,7 @@ async function updateSelectedStatus(status) {
 
   item.status = status;
   saveLocalStatus(item.id, status);
+  addTimeline(item.id, `Status changed to ${status}`);
 
   if (Number(item.id)) {
     try {
@@ -745,6 +809,26 @@ function updateAnalytics(counts) {
   $("#analyticsSummary").textContent = state.items.length
     ? `${state.items.length} total requests, ${highPriority} urgent`
     : "No requests yet";
+}
+
+function generateSummary() {
+  const total = state.items.length;
+  const high = state.items.filter((item) => item.priority === "High").length;
+  const tickets = state.items.filter((item) => item.type === "ticket").length;
+  const invoices = state.items.filter((item) => item.type === "invoice").length;
+  const resolved = state.items.filter((item) => item.status === "Resolved").length;
+  const channels = state.items.reduce((acc, item) => {
+    acc[item.channel] = (acc[item.channel] || 0) + 1;
+    return acc;
+  }, {});
+  const topChannel = Object.entries(channels).sort((a, b) => b[1] - a[1])[0]?.[0] || "none";
+  const counts = teamCounts();
+  const topTeam = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "none";
+
+  $("#summaryText").textContent = total
+    ? `Today OpsPilot handled ${total} requests. ${tickets} are support tickets and ${invoices} are invoices. ${high} requests are high priority, ${resolved} are resolved, ${topTeam} has the highest workload, and ${topChannel} is the most active channel. Recommended action: focus on high priority unresolved requests first.`
+    : "No requests are available yet. Submit a customer request or refresh data to generate a useful summary.";
+  $("#summaryCard").classList.remove("hidden");
 }
 
 function teamCounts() {
@@ -828,6 +912,75 @@ function makeItemFromTask(task) {
   };
 }
 
+function addTimeline(id, text) {
+  const timelines = JSON.parse(localStorage.getItem("opspilot_timelines") || "{}");
+  timelines[id] = timelines[id] || [];
+  timelines[id].unshift({
+    text,
+    time: new Date().toLocaleString(),
+  });
+  localStorage.setItem("opspilot_timelines", JSON.stringify(timelines));
+}
+
+function getTimeline(id) {
+  const timelines = JSON.parse(localStorage.getItem("opspilot_timelines") || "{}");
+  return timelines[id] || [];
+}
+
+function addNote(id, text) {
+  const notes = JSON.parse(localStorage.getItem("opspilot_notes") || "{}");
+  notes[id] = notes[id] || [];
+  notes[id].unshift({
+    text,
+    time: new Date().toLocaleString(),
+  });
+  localStorage.setItem("opspilot_notes", JSON.stringify(notes));
+}
+
+function getNotes(id) {
+  const notes = JSON.parse(localStorage.getItem("opspilot_notes") || "{}");
+  return notes[id] || [];
+}
+
+function renderTimeline(item) {
+  const notes = getNotes(item.id).map((note) => ({
+    text: `Note: ${note.text}`,
+    time: note.time,
+  }));
+  const timeline = [
+    { text: "Request loaded in OpsPilot", time: item.time || "db" },
+    ...getTimeline(item.id),
+    ...notes,
+  ];
+
+  $("#timelineList").innerHTML = timeline.length
+    ? timeline.map((entry) => `<li><strong>${escapeHtml(entry.text)}</strong><span>${escapeHtml(entry.time)}</span></li>`).join("")
+    : `<li>No timeline yet.</li>`;
+}
+
+function exportCsv() {
+  const rows = [
+    ["id", "title", "type", "priority", "team", "status", "channel", "email"],
+    ...getVisibleItems().map((item) => [
+      item.id,
+      item.title,
+      item.type,
+      item.priority,
+      item.team,
+      item.status,
+      item.channel,
+      item.customerEmail || "",
+    ]),
+  ];
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "opspilot-report.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function startPolling() {
   if (state.polling) return;
 
@@ -908,8 +1061,39 @@ function wireEvents() {
   });
 
   $("#refreshButton").addEventListener("click", () => refreshData(false));
+  $("#summaryButton").addEventListener("click", generateSummary);
+  $("#summaryClose").addEventListener("click", () => $("#summaryCard").classList.add("hidden"));
+  $("#exportButton").addEventListener("click", exportCsv);
   $("#copyReplyButton").addEventListener("click", copyReplyDraft);
   $("#sendReplyButton").addEventListener("click", sendReplyEmail);
+  $("#themeButton").addEventListener("click", () => {
+    state.theme = state.theme === "dark" ? "light" : "dark";
+    localStorage.setItem("opspilot_theme", state.theme);
+    applyTheme();
+  });
+  $("#searchInput").addEventListener("input", (event) => {
+    state.search = event.target.value;
+    renderActivity();
+  });
+  $("#priorityFilter").addEventListener("change", (event) => {
+    state.priorityFilter = event.target.value;
+    renderActivity();
+  });
+  $("#statusFilter").addEventListener("change", (event) => {
+    state.statusFilter = event.target.value;
+    renderActivity();
+  });
+  $("#channelFilter").addEventListener("change", (event) => {
+    state.channelFilter = event.target.value;
+    renderActivity();
+  });
+  $("#viewToggle").addEventListener("click", () => {
+    state.view = state.view === "list" ? "kanban" : "list";
+    $("#activityList").classList.toggle("hidden", state.view !== "list");
+    $("#kanbanCard").classList.toggle("hidden", state.view !== "kanban");
+    $("#viewToggle").textContent = state.view === "list" ? "Kanban view" : "List view";
+    renderActivity();
+  });
   $("#detailClose").addEventListener("click", () => {
     state.selectedItemId = null;
     $("#ticketDetail").classList.add("hidden");
@@ -918,6 +1102,19 @@ function wireEvents() {
 
   $$("[data-status]").forEach((button) => {
     button.addEventListener("click", () => updateSelectedStatus(button.dataset.status));
+  });
+
+  $("#noteForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const item = state.items.find((entry) => String(entry.id) === String(state.selectedItemId));
+    const text = $("#noteInput").value.trim();
+
+    if (!item || !text) return;
+
+    addNote(item.id, text);
+    $("#noteInput").value = "";
+    renderTimeline(item);
+    showNotification("Internal note added.");
   });
 
   $("#escalateButton").addEventListener("click", () => {
@@ -1057,6 +1254,7 @@ function sendReplyEmail() {
 
 wireEvents();
 setAuthMode("login");
+applyTheme();
 
 if (state.user) {
   showConsole();
