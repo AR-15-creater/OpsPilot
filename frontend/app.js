@@ -17,6 +17,7 @@ const state = {
   items: [],
   selectedItemId: null,
   lastLatency: null,
+  polling: null,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -38,6 +39,8 @@ function showConsole() {
   renderReasoning(false);
   renderActivity();
   updateMetrics();
+  startPolling();
+  refreshData(true);
 }
 
 function showAuth() {
@@ -278,6 +281,7 @@ function logout() {
   state.user = null;
   state.token = null;
   state.items = [];
+  stopPolling();
   showAuth();
 }
 
@@ -529,6 +533,7 @@ function resetLivePanel() {
   $("#suggestionList").innerHTML = "<li>No suggestions yet.</li>";
   $("#replyDraft").textContent = "Run a task to generate a response draft.";
   $("#copyReplyButton").disabled = true;
+  $("#sendReplyButton").disabled = true;
 }
 
 function updateLive(text, info, id, elapsed = "0.00") {
@@ -550,6 +555,7 @@ function updateLive(text, info, id, elapsed = "0.00") {
     .join("");
   $("#replyDraft").textContent = info.reply || "No reply draft generated.";
   $("#copyReplyButton").disabled = !info.reply;
+  $("#sendReplyButton").disabled = !info.reply;
 
   $(".confidence-ring").style.background = `conic-gradient(var(--green) 0 ${
     info.confidence * 3.6
@@ -563,6 +569,14 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function readField(text, label) {
+  const line = String(text || "")
+    .split("\n")
+    .find((item) => item.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+
+  return line ? line.slice(label.length + 1).trim() : "";
 }
 
 function renderReasoning(active, info = null) {
@@ -662,14 +676,39 @@ function getSlaText(item) {
   return "24h remaining";
 }
 
-function updateSelectedStatus(status) {
+async function updateSelectedStatus(status) {
   const item = state.items.find((entry) => String(entry.id) === String(state.selectedItemId));
 
   if (!item) return;
 
   item.status = status;
+  saveLocalStatus(item.id, status);
+
+  if (Number(item.id)) {
+    try {
+      await api(`/tasks/${item.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      showNotification("Status saved to PostgreSQL.");
+    } catch {
+      showNotification("Status changed locally. Backend save failed.");
+    }
+  }
+
   openTicketDetail(item.id);
   updateMetrics();
+}
+
+function saveLocalStatus(id, status) {
+  const statuses = JSON.parse(localStorage.getItem("opspilot_statuses") || "{}");
+  statuses[id] = status;
+  localStorage.setItem("opspilot_statuses", JSON.stringify(statuses));
+}
+
+function getLocalStatus(id) {
+  const statuses = JSON.parse(localStorage.getItem("opspilot_statuses") || "{}");
+  return statuses[id];
 }
 
 function updateMetrics() {
@@ -732,7 +771,7 @@ function updateWorkloadBars(counts) {
   $("#opsBar").style.setProperty("--w", `${(counts.Ops / total) * 100}%`);
 }
 
-async function refreshData() {
+async function refreshData(silent = false) {
   $("#refreshButton").textContent = "Refreshing...";
   const previousMaxId = state.items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0);
 
@@ -743,28 +782,13 @@ async function refreshData() {
       api("/invoices/"),
     ]);
 
-    state.items = tasks.map((task) => ({
-      id: task.id,
-      type: task.task_type,
-      title: task.title,
-      message: task.description,
-      team: task.task_type === "invoice" ? "Finance" : task.task_type === "ticket" ? "Support" : "Ops",
-      priority: task.priority || (task.task_type === "ticket" ? "High" : "Med"),
-      status: task.status === "completed" ? "New" : task.status,
-      sla: task.task_type === "ticket" ? "2h" : task.task_type === "invoice" ? "8h" : "24h",
-      channel: task.description?.includes("Customer:") ? "Web Form" : "Console",
-      sentiment: getSentiment(`${task.title} ${task.description}`),
-      knowledge: getKnowledge(`${task.title} ${task.description}`),
-      suggestions: task.suggestions || [],
-      reply: task.reply,
-      time: "db",
-    }));
+    state.items = tasks.map((task) => makeItemFromTask(task));
 
     const latestMaxId = state.items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0);
 
     if (previousMaxId && latestMaxId > previousMaxId) {
       showNotification(`${latestMaxId - previousMaxId} new customer request received.`);
-    } else if (state.items.length) {
+    } else if (state.items.length && !silent) {
       showNotification("Data refreshed. Latest customer requests are loaded.");
     }
 
@@ -778,6 +802,45 @@ async function refreshData() {
   } finally {
     $("#refreshButton").textContent = "Refresh data";
   }
+}
+
+function makeItemFromTask(task) {
+  const status = task.status === "completed" ? "New" : task.status;
+  const message = task.description || "";
+  const channel = readField(message, "Channel") || (message.includes("Customer:") ? "Website Form" : "Console");
+
+  return {
+    id: task.id,
+    type: task.task_type,
+    title: task.title,
+    message,
+    customerEmail: readField(message, "Email"),
+    team: task.task_type === "invoice" ? "Finance" : task.task_type === "ticket" ? "Support" : "Ops",
+    priority: task.priority || (task.task_type === "ticket" ? "High" : "Med"),
+    status: getLocalStatus(task.id) || status,
+    sla: task.task_type === "ticket" ? "2h" : task.task_type === "invoice" ? "8h" : "24h",
+    channel,
+    sentiment: getSentiment(`${task.title} ${message}`),
+    knowledge: getKnowledge(`${task.title} ${message}`),
+    suggestions: task.suggestions || [],
+    reply: task.reply,
+    time: "db",
+  };
+}
+
+function startPolling() {
+  if (state.polling) return;
+
+  state.polling = window.setInterval(() => {
+    if (state.user && !state.running) {
+      refreshData(true);
+    }
+  }, 20000);
+}
+
+function stopPolling() {
+  window.clearInterval(state.polling);
+  state.polling = null;
 }
 
 function showNotification(text) {
@@ -844,8 +907,9 @@ function wireEvents() {
     $("#taskInput").focus();
   });
 
-  $("#refreshButton").addEventListener("click", refreshData);
+  $("#refreshButton").addEventListener("click", () => refreshData(false));
   $("#copyReplyButton").addEventListener("click", copyReplyDraft);
+  $("#sendReplyButton").addEventListener("click", sendReplyEmail);
   $("#detailClose").addEventListener("click", () => {
     state.selectedItemId = null;
     $("#ticketDetail").classList.add("hidden");
@@ -862,7 +926,7 @@ function wireEvents() {
     if (!item) return;
 
     item.priority = "High";
-    item.status = "In Progress";
+    updateSelectedStatus("In Progress");
     showNotification("Ticket escalated to high priority.");
     openTicketDetail(item.id);
     updateMetrics();
@@ -969,6 +1033,26 @@ async function copyReplyDraft() {
   window.setTimeout(() => {
     $("#copyReplyButton").textContent = "Copy";
   }, 1400);
+}
+
+function sendReplyEmail() {
+  const item = state.items.find((entry) => String(entry.id) === String(state.selectedItemId));
+  const reply = $("#replyDraft").textContent.trim();
+  const email = item?.customerEmail || readField(item?.message || "", "Email");
+
+  if (!email) {
+    showNotification("Customer email not found for this request.");
+    return;
+  }
+
+  if (!reply || reply === "Run a task to generate a response draft.") {
+    showNotification("Reply draft is empty.");
+    return;
+  }
+
+  const subject = encodeURIComponent(`Update on OpsPilot request #${item.id}`);
+  const body = encodeURIComponent(reply);
+  window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
 }
 
 wireEvents();

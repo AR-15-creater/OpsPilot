@@ -26,6 +26,9 @@ class TaskCreate(BaseModel):
     title: str
     description: str
 
+class TaskStatusUpdate(BaseModel):
+    status: str
+
 class TaskResponse(BaseModel):
     id: int
     title: str

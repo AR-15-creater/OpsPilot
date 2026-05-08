@@ -11,6 +11,7 @@ async function submitRequest(event) {
   const customerName = String(data.get("customer_name") || "").trim();
   const email = String(data.get("email") || "").trim();
   const requestType = String(data.get("request_type") || "General request");
+  const channel = String(data.get("channel") || "Website Form");
   const reference = String(data.get("reference") || "").trim();
   const body = String(data.get("message") || "").trim();
 
@@ -20,6 +21,7 @@ async function submitRequest(event) {
     `Customer: ${customerName}`,
     `Email: ${email}`,
     `Request type: ${requestType}`,
+    `Channel: ${channel}`,
     reference ? `Reference: ${reference}` : "",
     "",
     body,
@@ -48,7 +50,8 @@ async function submitRequest(event) {
     }
 
     form.reset();
-    message.textContent = `Request #${result.id} submitted. Our team can now see it in OpsPilot.`;
+    const trackUrl = `track.html?id=${result.id}`;
+    message.innerHTML = `Request #${result.id} submitted. <a href="${trackUrl}">Track your request</a>.`;
   } catch (error) {
     message.textContent = `${error.message}. Please try again in a moment.`;
   } finally {

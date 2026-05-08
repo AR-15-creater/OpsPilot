@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Track Request | OpsPilot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <main class="customer-shell">
+      <header class="customer-topbar">
+        <a class="brand-mini" href="customer.html">
+          <div class="logo-mark small">OP</div>
+          <strong>OpsPilot</strong>
+          <span>/</span>
+          <span>Track request</span>
+        </a>
+
+        <a class="icon-button" href="customer.html">Submit another</a>
+      </header>
+
+      <section class="track-card">
+        <div class="section-heading">
+          <h1>Request status</h1>
+          <span id="trackId">#--</span>
+        </div>
+
+        <div class="track-grid">
+          <div>
+            <span>Title</span>
+            <strong id="trackTitle">Loading...</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong id="trackStatus">--</strong>
+          </div>
+          <div>
+            <span>Type</span>
+            <strong id="trackType">--</strong>
+          </div>
+          <div>
+            <span>Message</span>
+            <p id="trackMessage">Please wait while we fetch your request.</p>
+          </div>
+        </div>
+
+        <p class="form-note" id="trackNote">This status is loaded from OpsPilot.</p>
+      </section>
+    </main>
+
+    <script src="track.js?v=tracking-1"></script>
+  </body>
+</html>

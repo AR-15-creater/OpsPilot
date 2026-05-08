@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Task, Ticket, Invoice
-from schemas import TaskCreate, TaskResponse
+from schemas import TaskCreate, TaskResponse, TaskStatusUpdate
 from agent.graph import run_agent_workflow
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
@@ -75,4 +75,17 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
 def get_tasks(db: Session = Depends(get_db)):
     return db.query(Task).order_by(Task.id.desc()).all()
 
+@router.patch("/{task_id}/status", response_model=TaskResponse)
+def update_task_status(task_id: int, payload: TaskStatusUpdate, db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+
+    if not task:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task.status = payload.status
+    db.commit()
+    db.refresh(task)
+
+    return task
 
