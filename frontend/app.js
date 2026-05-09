@@ -72,7 +72,7 @@ function setAuthMode(mode) {
 
 async function api(path, options = {}) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs || 6000);
+  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs || 20000);
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
 
   if (state.token) {
@@ -140,7 +140,10 @@ async function handleAuth(event) {
 
     showConsole();
   } catch (error) {
-    $("#authMessage").textContent = `${error.message}. Please check backend connection.`;
+    const message = error.name === "AbortError"
+      ? "Backend is waking up. Please try again in a few seconds."
+      : `${error.message}. Please check backend connection.`;
+    $("#authMessage").textContent = message;
   }
 }
 
